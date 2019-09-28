@@ -9,12 +9,11 @@ class pycom:
 
     #Computational Data Members.
     denominator = sqrt(2)
-    unit_theta = pi/12 # 15 degrees.
-    theta_list = [pi/12*i for i in range(1, 13)]
+    unit_theta = pi/6 # 15 degrees.
+    theta_list = [pi/9*i for i in range(1, 10)]
 
 
     # Output Variables.
-    OP_values = list()
     TARC_all = list(list())
     MEG1 = list()
     MEG2 = list()
@@ -53,37 +52,63 @@ class pycom:
             temp.append(val)
         return(temp)
 
-    def TARC_all_compute(self):
+    def TARC_all_compute(self, clear_first = True):
         '''Computes the TARC function over the internal S-Params and Thetas in Theta List'''
+
+        if(clear_first):
+            self.TARC_all.clear()
 
         for __theta in self.theta_list:
             for_theta = self.TARC_func(self.s11, self.s12, self.s21, self.s22, __theta)
-            self.TARC_all.append(self.to_db(for_theta))
-        return (self.freq, self.TARC_all)
+            self.TARC_all.append(for_theta)
+        
+        op_values = [{'label' : f"Theta : {(i+1)*20}°", 'x' : self.freq, 'y' : self.TARC_all[i]} for i in range(0, len(self.TARC_all))]
+        
+        return (op_values)
 
 
-    def MEG_ONE(self):
+    def MEG1_compute(self, clear_first = True):
         '''Computes the MEG1 Value over the provided S Param Values.'''
         
-        for i in range(0, len(self.s12)):
-            self.MEG1.append((0.5*(1 - abs(self.s11[i]**2) - abs(self.s12[i])**2))[0])
-        return(self.freq, self.MEG1)
+        if(clear_first):
+            self.MEG1.clear()
 
-    def MEG_TWO(self):
+        for i in range(0, len(self.s12)):
+            self.MEG1.append((0.5*(1 - abs(self.s11[i]**2) - abs(self.s12[i])**2)))
+
+    def MEG2_compute(self, clear_first = True):
         '''Computes the MEG2 Value over the provided S Param Values.'''
 
+        if(clear_first):
+            self.MEG2.clear()
+
         for i in range(0, len(self.s12)):
-            self.MEG2.append((0.5*(1 - abs(self.s12[i]**2) - abs(self.s22)[i]**2))[1])
+            self.MEG2.append((0.5*(1 - abs(self.s12[i]**2) - abs(self.s22)[i]**2)))
         return(self.freq, self.MEG2)
 
-    def MEG_diff_compute(self):
+    def MEG_diff_compute(self, clear_first = True):
         '''Computes the MEG Value difference over the pre calculated MEG1 and MEG2.'''
 
-        self.MEG_diff = [self.MEG1[i] - self.MEG2[i] for i in range(0, len(self.MEG1))] 
-        return(self.freq, self.MEG_diff)
+        if(clear_first):
+            self.MEG_diff.clear()
+
+        if(len(self.MEG1) is 0 or len(self.MEG1) is 0):
+            self.MEG1_compute()
+            self.MEG2_compute()
+
+        self.MEG_diff = [self.MEG1[i] - self.MEG2[i] for i in range(0, len(self.MEG1))]
+        op_values = [
+            {'label' : "MEG1", 'x' : self.freq, 'y' : self.MEG1},
+            {'label' : "MEG2", 'x' : self.freq, 'y' : self.MEG2},
+            {'label' : "MEG1 - MEG2", 'x' : self.freq, 'y' : self.MEG_diff}
+        ]
+
+        return op_values
+        
 
     method_token = {
-        "TARC" : TARC_all_compute
+        "TARC" : TARC_all_compute,
+        "MEG"  : MEG_diff_compute
     }
 
     def output(self, property = "TARC"):
@@ -96,17 +121,13 @@ class pycom:
         ----------
         Property : str, optional
             The Desired property to be computed.It serves as a token for the 
-            method to be executed. Options are TARC, MEG1, MEG2, MEG_diff,
-            ECC, CCL, DG, and CM.
+            method to be executed. Options are TARC, MEG, ECC, CCL, DG, and CM.
         """
 
-        (x,y) = self.method_token[property](self)
-        op_values = [{'label' : f"Theta : {(i+1)*15}°", 'x' : x, 'y' : y[i]} for i in range(0, len(self.TARC_all))]
+        op_values = self.method_token[property](self, clear_first = True)
         fig, ax = plt.subplots()
         for op in op_values:
             ax.plot(op['x'], real(op['y']), label=op['label'])
-            # ax.plot(op['x'], imag(op['y'], label=op['label'])
-
         ax.legend()
         ax.set_title(property)
         plt.show()
