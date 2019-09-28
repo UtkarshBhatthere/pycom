@@ -1,0 +1,34 @@
+//                      Formula DOC
+// Comment lines (Descriptive Lines) start with "//" Symbol.
+// Formula Lines Start with ">>" Symbol.
+// IF just the formula is required, we can copy the R.H.S. of the equations.
+// All the formulas written here follow MATLAB syntax.
+// Variables starting with "__" example -> __theta in line #16 are variables 
+// whose values are not known and thus is expected to be taken care while using them.
+
+// FOR ECC ("Envelope correlation coefficient") calculation.
+>> ECC  = ( (abs(conj(S(1,1))*S(1,2) + conj(S(2,1))*S(2,2))^(2)) / ( ( 1 - abs(1,1)^(2) - abs(2,1)^(2)) * (1 - abs(S(2,2))^(2) - abs(S(1,2))^(2)) ) )
+
+//  For DG ("Diversity Gain") Calculation
+>> DG   = 10 * sqrt(1 - ( (abs(conj(S(1,1))*S(1,2) + conj(S(2,1))*S(2,2))^(2)) / ( ( 1 - abs(1,1)^(2) - abs(2,1)^(2)) * (1 - abs(S(2,2))^(2) - abs(S(1,2))^(2)) ) )^(2) )
+
+// For TARC ("Total Active Reflection Coefficient") Calculation
+>> TARC = ( sqrt((S(1,1) + S(1,2)*(exp(i*__theta)))^(2) + ( S(2,1) + S(2,2)*(exp(i*__theta)) )^(2)) / sqrt(2) )
+
+// For Calculating "correlation matrix of the receiving antenna" -> "ΨR".
+// 𝜌𝑖𝑖=1−(||𝑆𝑖𝑖||2+||𝑆𝑖𝑗||2)
+// and 𝜌𝑖𝑗=−(𝑆∗𝑖𝑖𝑆𝑖𝑗+𝑆∗𝑗𝑖𝑆𝑖𝑗), for i, j = 1 or 2.
+// Ψ𝑅=[𝜌11 𝜌21; 𝜌12 𝜌22]
+>> ΨR   = [(1 - (abs(S(1,1))^(2) + abs(S(1,1))^(2))) -1*( (conj(S(1,1))*S(1,2)) + (conj(S(2,1))*S(1,2)) ); -1*((conj(S(1,1))*S(2,1)) + (conj(S(1,2))*S(2,1))) (1 - (abs(S(2,2))^(2) + abs(S(2,2))^(2)))]
+
+// For Calculating CCL ("Channel Capacity Loss")
+// 𝐶(loss)=−log2det(Ψ𝑅)
+>> CCL  = -1*log2(det(ΨR))
+// or
+>> CCL  = -1*log2( (1 - (abs(S(1,1))^(2) + abs(S(1,1))^(2)))*(1 - (abs(S(2,2))^(2) + abs(S(2,2))^(2))) - ( -1*((conj(S(1,1))*S(1,2)) + (conj(S(2,1))*S(1,2))) )*( -1*((conj(S(1,1))*S(2,1)) + (conj(S(1,2))*S(2,1))) ) )
+
+// For MEG calculation
+// MEG1=0.5𝜂1,rad=0.5[1−||𝑆11||2−||𝑆12||2]
+// MEG2=0.5𝜂2,rad=0.5[1−||𝑆12||2−||𝑆22||2]
+>> MEG_ONE = 0.5*(1 - abs(S(1,1))^(2) - abs(S(1,2))^(2))
+>> MEG_TWO = 0.5*(1 - abs(S(1,2))^(2) - abs(S(2,2))^(2))
