@@ -1,23 +1,26 @@
-from numpy import sqrt, imag, real, exp, abs, log10, loadtxt, pi
+from numpy import imag, real, conj, exp, abs, log10, loadtxt, pi
 import matplotlib.pyplot as plt
-
+from cmath import sqrt, log
 class pycom:
 
     #Funtional Data Members.
-    path = str()
-    method_token = dict()
+    path            = str()
+    method_token    = dict()
 
     #Computational Data Members.
     denominator = sqrt(2)
-    unit_theta = pi/6 # 15 degrees.
-    theta_list = [pi/9*i for i in range(1, 10)]
+    unit_theta  = pi/12 # 15 degrees.
+    theta_list  = [pi/12*i for i in range(1, 10)]
 
 
     # Output Variables.
-    TARC_all = list(list())
-    MEG1 = list()
-    MEG2 = list()
-    MEG_diff = list()
+    TARC_all    = list(list())
+    MEG1        = list()
+    MEG2        = list()
+    MEG_diff    = list()
+    ECC         = list()
+    DG          = list()
+    CCL         = list()
 
     #
     def __init__(self, path_str: str):
@@ -30,7 +33,7 @@ class pycom:
         self.S22 = loadtxt(open(path_str+"S22.csv", "rb"), delimiter=",", skiprows=1)
 
         #Fetching Frequency data from variable.
-        self.freq = [i/10 for i in range(10, 151)]#  [s11[0] for s11 in self.S11]
+        self.freq = [s11[0] for s11 in self.S11]
 
         #Fetching S param Data from internal variables.
         self.s11 = [s11[1] for s11 in self.S11]
@@ -48,7 +51,7 @@ class pycom:
         
         temp = list()
         for i in range(0, len(s11)):
-            val = (sqrt(s11[i]+s12[i]*exp(1j*theta)**2 +(s21[i] + s22[i]*exp(1j*theta)**2)))/self.denominator
+            val = (sqrt(abs(s11[i]+s12[i]*exp(1j*theta))**2 +(abs(s21[i] + s22[i]*exp(1j*theta))**2)))/self.denominator
             temp.append(val)
         return(temp)
 
@@ -60,9 +63,9 @@ class pycom:
 
         for __theta in self.theta_list:
             for_theta = self.TARC_func(self.s11, self.s12, self.s21, self.s22, __theta)
-            self.TARC_all.append(for_theta)
+            self.TARC_all.append(self.to_db(for_theta))
         
-        op_values = [{'label' : f"Theta : {(i+1)*20}°", 'x' : self.freq, 'y' : self.TARC_all[i]} for i in range(0, len(self.TARC_all))]
+        op_values = [{'label' : f"Theta : {(i+1)*15}°", 'x' : self.freq, 'y' : self.TARC_all[i]} for i in range(0, len(self.TARC_all))]
         
         return (op_values)
 
@@ -74,7 +77,7 @@ class pycom:
             self.MEG1.clear()
 
         for i in range(0, len(self.s12)):
-            self.MEG1.append((0.5*(1 - abs(self.s11[i]**2) - abs(self.s12[i])**2)))
+            self.MEG1.append((0.5*(1 - abs(self.s11[i]**2) - abs(self.s12[i])**2))/40)
 
     def MEG2_compute(self, clear_first = True):
         '''Computes the MEG2 Value over the provided S Param Values.'''
@@ -83,7 +86,7 @@ class pycom:
             self.MEG2.clear()
 
         for i in range(0, len(self.s12)):
-            self.MEG2.append((0.5*(1 - abs(self.s12[i]**2) - abs(self.s22)[i]**2)))
+            self.MEG2.append((0.5*(1 - abs(self.s12[i]**2) - abs(self.s22)[i]**2))/40)
         return(self.freq, self.MEG2)
 
     def MEG_diff_compute(self, clear_first = True):
@@ -104,11 +107,53 @@ class pycom:
         ]
 
         return op_values
-        
+
+    def ECC_compute(self, clear_first = True):
+        '''Computes the Envelope Correlation Coefficient over the provided S Param Values.'''
+        temp = list()
+        if(clear_first):
+            self.ECC.clear()
+
+        for i in range(0, len(self.s12)):
+            val = ( (abs(conj(self.s11[i])*self.s12[i] + conj(self.s21[i])*self.s22[i])**(2)) / ( ( 1 - abs(self.s11[i])**(2) - abs(self.s21[i])**(2)) * (1 - abs(self.s22[i])**(2) - abs(self.s12[i])**(2)) ) )
+            temp.append(val)
+        self.ECC = temp
+        op_values = [{'label' : "ECC", 'x' : self.freq, 'y' : self.to_db(self.ECC)}]
+        return op_values
+    
+    def DG_compute(self, clear_first = True):
+        '''Computes the Diversity Gain Value over the provided S Param Values.'''
+        temp = list()
+        if(clear_first):
+            self.DG.clear()
+
+        for i in range(0, len(self.s12)):
+            val = 10 * sqrt(1 - ( (abs(self.s11[i]*self.s12[i] + self.s21[i]*self.s22[i])**2) / ( ( 1 - abs(self.s11[i])**2 - abs(self.s21[i])**2) * (1 - abs(self.s22[i])**2 - abs(self.s12[i])**2) ) )**2 )
+            temp.append(val)
+        self.DG = temp
+        op_values = [{'label' : "DG", 'x' : self.freq, 'y' : self.to_db(self.DG)}]
+        return op_values
+
+    def CCL_compute(self, clear_first = True):
+        '''Computes the Channel Capacity Loss over the provided S param Values.'''
+        temp = list()
+        if(clear_first):
+            self.CCL.clear()
+
+        for i in range(0, len(self.s12)):
+            val = -1*log( (1 - (abs(self.s11[i])**(2) + abs(self.s11[i])**(2)))*(1 - (abs(self.s22[i])**(2) + abs(self.s22[i])**(2))) - ( -1*((conj(self.s11[i])*self.s12[i]) + (conj(self.s21[i])*self.s12[i])) )*( -1*((conj(self.s11[i])*self.s21[i]) + (conj(self.s12[i])*self.s21[i])) ), 2)
+            temp.append(val)
+        self.CCL = temp
+
+        op_values = [{'label' : "CCL", 'x' : self.freq, 'y' : self.CCL}]        
+        return op_values
 
     method_token = {
         "TARC" : TARC_all_compute,
-        "MEG"  : MEG_diff_compute
+        "MEG"  : MEG_diff_compute,
+        "ECC"  : ECC_compute,
+        "DG"   : DG_compute,
+        "CCL"  : CCL_compute
     }
 
     def output(self, property = "TARC"):
