@@ -3,6 +3,7 @@ PyCom : A Framework for MIMO Antenna Evaluation
 
     #) TO-DO:
     - [x] Add TARC Analysis.
+    - [x] Change the Characteristics/ Init structure to accomodate complex values.
     - [ ] Test TARC Outputs against reference Research Papers.
     - [x] Add Clear to All the compute methods.
     - [x] Add MEG1, MEG2 and MEG_Difference Analysis.
@@ -12,4 +13,3 @@ PyCom : A Framework for MIMO Antenna Evaluation
     - [ ] Test ECC, DG and CCL outputs against reference research paper.
     - [ ] Add Correlation Matrix Analysis.
     - [ ] Test CM outputs against refernece research paper.
-    - [ ] Put the conj back to the function computing the Diversity Gain Values.
