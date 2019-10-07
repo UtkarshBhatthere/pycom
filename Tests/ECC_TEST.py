@@ -5,4 +5,4 @@ from pycom import pycom
 
 if __name__ == "__main__":
     obj = pycom("Characteristics/MIMO1/")
-    obj.output("ECC")
+    obj.output("ECC", False)
