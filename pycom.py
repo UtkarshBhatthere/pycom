@@ -56,15 +56,14 @@ class pycom:
     def to_db(self, x):
         '''Converts the passed Array to corresponding Db values for Graphical Analysis.'''
         
-        return([-20*log10(sqrt(real(val)**2 + imag(val)**2)) for val in x])
+        return([20*log10(sqrt(real(val)**2 + imag(val)**2)) for val in x])
 
     def TARC_func(self, s11, s12, s21, s22, theta):
         '''Computes the TARC value corresponding to the passed S Params and Theta Value.'''
         
         temp = list()
         for i in range(0, len(s11)):
-            val = (sqrt(abs(s11[i]+s12[i]*exp(1j*theta))**2 +(abs(s21[i] + s22[i]*exp(1j*theta))**2)))/sqrt(2)
-            temp.append(val)
+            temp.append(sqrt(abs(self.s11[i] + self.s12[i]*e**(1j*theta))**2 + abs(self.s21[i] + self.s22[i]*e**(1j*theta))**2) / sqrt(2))
         return(temp)
 
     def TARC_all_compute(self, clear_first = True):
@@ -78,6 +77,7 @@ class pycom:
             self.TARC_all.append(self.to_db(for_theta))
         
         op_values = [{'label' : f"Theta : {(i+1)*15}°", 'x' : self.freq, 'y' : self.TARC_all[i]} for i in range(0, len(self.TARC_all))]
+        op_values.append({'label' : "-10 dB Threshold", 'linestyle' : '-.', 'x' : self.freq, 'y' : [-10 for i in range(0, len(self.freq))]})
         
         return (op_values)
 
@@ -113,11 +113,14 @@ class pycom:
             self.MEG1_compute()
             self.MEG2_compute()
 
-        self.MEG_diff = [self.MEG1[i] - self.MEG2[i] for i in range(0, len(self.MEG1))]
+        meg_one = self.to_db(self.MEG1)
+        meg_two = self.to_db(self.MEG2)
+
+        self.MEG_diff = [meg_one[i] - meg_two[i] for i in range(0, len(self.MEG1))]
         op_values = [
-            {'label' : "MEG1", 'x' : self.freq, 'y' : self.to_db(self.MEG1)},
-            {'label' : "MEG2", 'x' : self.freq, 'y' : self.to_db(self.MEG2)},
-            {'label' : "MEG1 - MEG2", 'x' : self.freq, 'y' : self.to_db(self.MEG_diff)}
+            {'label' : "MEG1", 'x' : self.freq, 'y' : meg_one},
+            {'label' : "MEG2", 'x' : self.freq, 'y' : meg_two},
+            {'label' : "MEG1 - MEG2", 'x' : self.freq, 'y' : self.MEG_diff}
         ]
 
         return op_values
@@ -165,13 +168,24 @@ class pycom:
         op_values = [{'label' : "CCL", 'x' : self.freq, 'y' : self.CCL}] 
         print(type(self.CCL))      
         return op_values
+    
+    def S_Params(self, clear_first = True):
+        ''' Prepares the S params and pushes them for the output '''
+        op_values = [
+            {'label' : "S(1,1)", 'x' : self.freq, 'y' : self.s11},
+            {'label' : "S(1,2)", 'x' : self.freq, 'y' : self.s12},
+            {'label' : "S(2,1)", 'x' : self.freq, 'y' : self.s21},
+            {'label' : "S(2,2)", 'x' : self.freq, 'y' : self.s22}
+        ]
+        return op_values
 
     method_token = {
         "TARC" : TARC_all_compute,
         "MEG"  : MEG_diff_compute,
         "ECC"  : ECC_compute,
         "DG"   : DG_compute,
-        "CCL"  : CCL_compute
+        "CCL"  : CCL_compute,
+        "SP"   : S_Params
     }
 
     def output(self, property = "TARC", save = True):
