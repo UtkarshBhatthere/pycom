@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "C:\\Program Files\\Python\\python.exe",
+    "python.pythonPath": "C:\\Program Files\\python3\\python.exe",
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true
 }
