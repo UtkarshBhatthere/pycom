@@ -6,3 +6,4 @@ if __name__ == "__main__":
     obj = pycom("MIMO2")
     for test in tests:
         obj.output(test)
+    obj.archive_output()
