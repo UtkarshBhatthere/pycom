@@ -1,12 +1,15 @@
-from numpy import imag, real, conj, abs, log10, loadtxt, savetxt, absolute
+from numpy import imag, real, conj, abs, log10, loadtxt, savetxt, absolute, column_stack
 import numpy
+import pandas as pd
 import matplotlib.pyplot as plt
 from cmath import sqrt, log, exp, pi, rect, e
+import csv
 class pycom:
 
     #Funtional Data Members.
     path            = str()
     method_token    = dict()
+    project_name = str()
 
     #Storage Data members
     s11 = list()
@@ -28,9 +31,10 @@ class pycom:
     CCL         = list()
 
     #
-    def __init__(self, path_str: str):
+    def __init__(self, project_name: str):
         ''' Initialiser for the pycom Class, does all the lazy work preparation.'''
-
+        self.project_name = project_name
+        path_str = f"Characteristics/{project_name}/"
         #Fetching the Real S params to internal variables. Skip rows skips the Column title.
         self.S11_mag = loadtxt(open(path_str+"S11_mag.csv", "rb"), delimiter=",", skiprows=1)
         self.S12_mag = loadtxt(open(path_str+"S12_mag.csv", "rb"), delimiter=",", skiprows=1)
@@ -63,7 +67,7 @@ class pycom:
         
         temp = list()
         for i in range(0, len(s11)):
-            temp.append(sqrt(abs(self.s11[i] + self.s12[i]*e**(1j*theta))**2 + abs(self.s21[i] + self.s22[i]*e**(1j*theta))**2) / sqrt(2))
+            temp.append((sqrt(abs(self.s11[i] + self.s12[i]*e**(1j*theta))**2 + abs(self.s21[i] + self.s22[i]*e**(1j*theta))**2) / sqrt(2)))
         return(temp)
 
     def TARC_all_compute(self, clear_first = True):
@@ -72,12 +76,17 @@ class pycom:
         if(clear_first):
             self.TARC_all.clear()
 
+        modded = list()
+
         for __theta in self.theta_list:
             for_theta = self.TARC_func(self.s11, self.s12, self.s21, self.s22, __theta)
+            modded.clear() 
+            # for x in self.to_db(for_theta):
+            #     modded.append(x-1)
             self.TARC_all.append(self.to_db(for_theta))
         
-        op_values = [{'label' : f"Theta : {(i+1)*15}°", 'x' : self.freq, 'y' : self.TARC_all[i]} for i in range(0, len(self.TARC_all))]
-        op_values.append({'label' : "-10 dB Threshold", 'linestyle' : '-.', 'x' : self.freq, 'y' : [-10 for i in range(0, len(self.freq))]})
+        op_values = [{'label' : f"Theta-{(i+1)*15}°", 'x' : self.freq, 'y' : self.TARC_all[i]} for i in range(0, len(self.TARC_all))]
+        # op_values.append({'label' : "-10 dB Threshold", 'linestyle' : '-.', 'x' : self.freq, 'y' : [-10 for i in range(0, len(self.freq))]})
         
         return (op_values)
 
@@ -198,10 +207,19 @@ class pycom:
         ----------
         Property : str, optional
             The Desired property to be computed.It serves as a token for the 
-            method to be executed. Options are TARC, MEG, ECC, CCL, DG, and CM.
+            method to be executed. Options are TARC, MEG, ECC, CCL, DG, and SP.
         """
 
         op_values = self.method_token[property](self, clear_first = True)
+        for label in op_values:
+            filename = f"{property}_{label['label']}.csv"
+            pathname = f"CSV_Output/{self.project_name}"
+            freq = numpy.array([real(x) for x in label['x']])
+            mag  = numpy.array(label['y'])
+            dataFrame = pd.DataFrame({"freq(in Ghz)" : freq, f"{property}_{label['label']}" : mag})
+            dataFrame.to_csv(f"{pathname}/{filename}", index=False)
+
+        print(len(op_values))
         fig, ax = plt.subplots()
         for op in op_values:
             ax.plot(op['x'], real(op['y']), label=op['label'])
@@ -210,4 +228,4 @@ class pycom:
         if save == False:
             plt.show()
         else:
-            plt.savefig(f"Output/{property}.png")
+            plt.savefig(f"Graph_Output/{property}.png")
