@@ -18,6 +18,4 @@ PyCom : A Framework for MIMO Antenna Evaluation
     - [x] Add Graph exporter functionality.
     - [x] Add an archiver module.
     - [x] Fix the repetetive file writing in archiver module.
-    - [ ] Fix the Graph output report false status.
-    - [ ] Fix the Graph output File structure.
-
+    - [ ] Fix the report mechnism to support the new project structure.
