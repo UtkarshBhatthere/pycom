@@ -4,12 +4,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from cmath import sqrt, log, exp, pi, rect, e
 import csv
+from archiver import archiver
 class pycom:
 
     #Funtional Data Members.
     path            = str()
     method_token    = dict()
-    project_name = str()
+    project_name    = str()
+    CSV_Out_Path    = str()
+    filename_list   = list()    #To store the name of all the files generated.
 
     #Storage Data members
     s11 = list()
@@ -211,13 +214,15 @@ class pycom:
         """
 
         op_values = self.method_token[property](self, clear_first = True)
+
+        self.CSV_Out_Path = f"CSV_Output/{self.project_name}"
         for label in op_values:
             filename = f"{property}_{label['label']}.csv"
-            pathname = f"CSV_Output/{self.project_name}"
+            self.filename_list.append(filename)
             freq = numpy.array([real(x) for x in label['x']])
             mag  = numpy.array(label['y'])
             dataFrame = pd.DataFrame({"freq(in Ghz)" : freq, f"{property}_{label['label']}" : mag})
-            dataFrame.to_csv(f"{pathname}/{filename}", index=False)
+            dataFrame.to_csv(f"{self.CSV_Out_Path}/{filename}", index=False)
 
         print(len(op_values))
         fig, ax = plt.subplots()
@@ -229,3 +234,8 @@ class pycom:
             plt.show()
         else:
             plt.savefig(f"Graph_Output/{property}.png")
+            self.filename_list.append(f"Graph_Output/{self.project_name}/{property}.png")
+
+    def archive_output(self):
+        #Firing up arhiver to check files and create zip.
+        archiver(self.CSV_Out_Path, self.filename_list)
